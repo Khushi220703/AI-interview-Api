@@ -1,11 +1,14 @@
-import express from "express"
-import login from "../controller/AuthController"
+import express from "express";
+import { signUp, login, forgotPassword, deleteUser, onBoarding } from "../controller/AuthController.js";
+
 const router = express.Router();
 
-router.post("/login",login);
-router.post("/signup");
-router.patch("/onBoarding");
-router.delete("/deleteUser");
-router.patch("/forgotPassword");
+router.post("/login", login);
 
-router.export;
+// Add controllers later
+router.post("/signup",signUp);
+router.patch("/onBoarding", onBoarding);
+router.delete("/deleteUser",deleteUser);
+router.patch("/forgotPassword",onBoarding);
+
+export default router;

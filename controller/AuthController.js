@@ -111,15 +111,70 @@ export const deleteUser = async (req, res) => {
     }
 }
 export const onBoarding = async (req, res) => {
-    const { email, skills, experience } = req.body;
-    try {
-        if (!email || !skills || !experience) res.status(404).json("Please enter email, skills and experience!");
-        const user = await User.findOne({ email });
-        if (!user) res.status(404).json("Please enter valid email!");
-        await User.updateOne({ email }, { skills, experience });
-        res.status(200).json("Onboarding completed successfully!");
-    } catch (error) {
-        console.log("There is an error at server side auth onboarding:", error);
-        res.status(500).json("Internal server error");
+  try {
+    const {
+      email,
+      location,
+      company,
+      portfolioUrl,
+      targetRole,
+      experience,
+      domain,
+      dreamCompanies,
+      skills,
+      customSkills,
+      interviewTypes,
+      prepTimeline,
+      extraContext,
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
     }
-}
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedSkills = [
+      ...skills,
+      ...(customSkills
+        ? customSkills.split(",").map((s) => s.trim())
+        : []),
+    ];
+
+    await User.updateOne(
+      { email },
+      {
+        $set: {
+          location,
+          currentCompany: company,
+          portfolioUrl,
+          targetRole,
+          domain,
+          skills: updatedSkills,
+          interviewTypes,
+          bio: extraContext,
+          onboardingCompleted: true,
+        },
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Onboarding completed successfully",
+    });
+  } catch (error) {
+    console.log("Onboarding Error:", error);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};

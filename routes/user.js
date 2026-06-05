@@ -9,6 +9,6 @@ router.post("/login", login);
 router.post("/signup",signUp);
 router.patch("/onBoarding", onBoarding);
 router.delete("/deleteUser",deleteUser);
-router.patch("/forgotPassword",onBoarding);
+router.patch("/forgotPassword",forgotPassword);
 
 export default router;

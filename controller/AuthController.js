@@ -93,6 +93,7 @@ export const deleteUser = async (req, res) => {
 };
 
 export const onBoarding = async (req, res) => {
+       console.log(req.body);
   try {
     const {
       email,

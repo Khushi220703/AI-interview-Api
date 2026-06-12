@@ -1,6 +1,8 @@
 import User from "../schema/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import { setOtp, getOtp, deleteOtp } from "../utils/otpStore.js";
 
 const secretKey = process.env.JWT_SECRET;
 if (!secretKey) throw new Error("JWT_SECRET is not defined");
@@ -12,24 +14,157 @@ const generateToken = (email) => {
 };
 
 export const signUp = async (req, res) => {
-    const { name, email, password } = req.body;
-    try {
-        if (!name || !email || !password)
-            return res.status(400).json({ message: "Please enter name, email, and password!" });
-
-        const isUserExists = await User.findOne({ email });
-        if (isUserExists)
-            return res.status(400).json({ message: "Account already exists!" });
-
-        const hashed = await bcrypt.hash(password, 12);
-        await User.create({ email, name, password: hashed });
-
-        const token = generateToken(email);
-        res.status(201).json({ message: "Account created successfully!", token });
-    } catch (error) {
-        console.error("Error in signUp:", error);
-        res.status(500).json({ message: "Internal server error" });
+  const { name, email, password } = req.body;
+  try {
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "Please enter all fields",
+      });
     }
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Account already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    const token = generateToken(user.email);
+
+    return res.status(201).json({
+      success: true,
+      token,
+      user,
+      message: "Account created successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // your gmail address
+    pass: process.env.EMAIL_PASS, // app password (not your normal password)
+  },
+});
+
+export const sendOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    setOtp(email, otp);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your OTP Code",
+      html: `<h2>Your OTP is: ${otp}</h2><p>This OTP is valid for 5 minutes.</p>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+// export const sendOtp = async (req, res) => {
+//   const { email } = req.body;
+
+//   try {
+//     if (!email) {
+//       return res.status(400).json({
+//         message: "Email is required",
+//       });
+//     }
+
+//     // Temporary OTP
+//     const otp = "123456";
+
+//     return res.status(200).json({
+//       success: true,
+//       otp,
+//       message: "OTP sent successfully",
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: "Internal Server Error",
+//     });
+//   }
+// };
+
+export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({
+        message: "Email and OTP are required",
+      });
+    }
+
+    const record = getOtp(email);
+
+    if (!record) {
+      return res.status(400).json({
+        message: "OTP not found. Please request a new one.",
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      deleteOtp(email);
+      return res.status(400).json({
+        message: "OTP expired. Please request a new one.",
+      });
+    }
+
+    if (record.otp !== otp) {
+      return res.status(400).json({
+        message: "Invalid OTP",
+      });
+    }
+
+    deleteOtp(email);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP verified",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
 };
 
 export const login = async (req, res) => {
@@ -67,7 +202,7 @@ export const forgotPassword = async (req, res) => {
         const hashed = await bcrypt.hash(newPassword, 12);
         await User.updateOne({ email }, { password: hashed });
 
-        res.status(200).json({ message: "Password updated successfully!" });
+        res.status(200).json({ success: true, message: "Password updated successfully!" });
     } catch (error) {
         console.error("Error in forgotPassword:", error);
         res.status(500).json({ message: "Internal server error" });

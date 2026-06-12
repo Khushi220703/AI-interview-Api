@@ -1,14 +1,16 @@
 import express from "express";
-import { signUp, login, forgotPassword, deleteUser, onBoarding } from "../controller/AuthController.js";
+import {  sendOtp,  verifyOtp, signUp, login, forgotPassword, deleteUser, onBoarding } from "../controller/AuthController.js";
 
 const router = express.Router();
 
 router.post("/login", login);
+router.post("/sendOtp", sendOtp);
+router.post("/verifyOtp", verifyOtp);
 
 // Add controllers later
 router.post("/signup",signUp);
 router.patch("/onBoarding", onBoarding);
 router.delete("/deleteUser",deleteUser);
-router.patch("/forgotPassword",forgotPassword);
+router.post("/forgotPassword",forgotPassword);
 
 export default router;

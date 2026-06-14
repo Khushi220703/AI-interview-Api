@@ -47,7 +47,7 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: "Invalid password!" });
 
         const token = generateToken(user.email);
-        res.status(200).json({ message: "Login successful!", token });
+        res.status(200).json({ message: "Login successful!",user });
     } catch (error) {
         console.error("Error in login:", error);
         res.status(500).json({ message: "Internal server error" });
